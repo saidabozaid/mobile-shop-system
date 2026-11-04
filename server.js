@@ -20,6 +20,8 @@ db.connect((err) => {
     }
 });
 
+app.use(express.static('public'));
+
 app.get('/', (req, res) => {
     res.send('<h1 style="text-align:center; margin-top:50px;">📱 نظام إدارة محل الموبايلات يعمل وقاعدة البيانات متصلة!</h1>');
 });
