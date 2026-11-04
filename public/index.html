@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .nav-pills .nav-link.active { background-color: #0d6efd; }
         .card { border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     </style>
 </head>
@@ -25,10 +24,10 @@
             <button class="nav-link active" id="pos-tab" data-bs-toggle="tab" data-bs-target="#pos" type="button">🛒 نقطة البيع (POS)</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button">📦 المخزون والـ IMEI</button>
+            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" onclick="loadProducts()" type="button">📦 المخزون والـ IMEI</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" type="button">🛠️ مركز الصيانة</button>
+            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" onclick="loadMaintenance()" type="button">🛠️ مركز الصيانة</button>
         </li>
     </ul>
 
@@ -39,7 +38,7 @@
                 <h4>نقطة البيع الفورية</h4>
                 <div class="row g-3 my-2">
                     <div class="col-md-8">
-                        <input type="text" id="barcodeInput" class="form-control form-control-lg" placeholder="امسح الباركود أو أدخل الـ IMEI هنا...">
+                        <input type="text" class="form-control form-control-lg" placeholder="امسح الباركود أو أدخل الـ IMEI هنا...">
                     </div>
                     <div class="col-md-4">
                         <button class="btn btn-primary btn-lg w-100">إضافة للفاتورة</button>
@@ -48,12 +47,12 @@
             </div>
         </div>
 
-        <!-- قسم المخزون والـ IMEI -->
+        <!-- قسم المخزون -->
         <div class="tab-pane fade" id="inventory">
             <div class="card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>إدارة المنتجات والأجهزة</h4>
-                    <button class="btn btn-success">+ إضافة منتج جديد</button>
+                    <h4>إدارة المنتجات الأجهزة</h4>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">+ إضافة منتج جديد</button>
                 </div>
                 <table class="table table-hover">
                     <thead>
@@ -66,7 +65,7 @@
                         </tr>
                     </thead>
                     <tbody id="productsList">
-                        <tr><td colspan="5" class="text-center text-muted">لا يوجد منتجات مضافة حتى الآن</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted">جاري التحميل...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -76,22 +75,22 @@
         <div class="tab-pane fade" id="maintenance">
             <div class="card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>تذاكر الصيانة والجيل</h4>
-                    <button class="btn btn-warning text-dark">+ كارت صيانة جديد</button>
+                    <h4>تذاكر الصيانة والعمليات</h4>
+                    <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">+ كارت صيانة جديد</button>
                 </div>
                 <table class="table table-striped">
                     <thead>
                         <tr>
                             <th>رقم التذكرة</th>
                             <th>اسم العميل</th>
+                            <th>الهاتف</th>
                             <th>نوع الجهاز</th>
                             <th>العطل</th>
                             <th>التكلفة</th>
-                            <th>الحالة</th>
                         </tr>
                     </thead>
                     <tbody id="maintenanceList">
-                        <tr><td colspan="6" class="text-center text-muted">لا يوجد طلبات صيانة حالية</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">جاري التحميل...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -99,6 +98,112 @@
     </div>
 </div>
 
+<!-- Modal إضافة منتج -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">إضافة منتج جديد</h5></div>
+      <div class="modal-body">
+        <form id="productForm">
+            <input type="text" id="pName" class="form-control mb-2" placeholder="اسم المنتج / الموبايل" required>
+            <input type="text" id="pBarcode" class="form-control mb-2" placeholder="الباركود / IMEI">
+            <input type="number" id="pBuyPrice" class="form-control mb-2" placeholder="سعر الشراء" required>
+            <input type="number" id="pSellPrice" class="form-control mb-2" placeholder="سعر البيع" required>
+            <input type="number" id="pStock" class="form-control mb-2" placeholder="الكمية المتاحة" required>
+            <button type="submit" class="btn btn-primary w-100">حفظ المنتج</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal كارت صيانة -->
+<div class="modal fade" id="addMaintenanceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">إضافة كارت صيانة جديد</h5></div>
+      <div class="modal-body">
+        <form id="maintenanceForm">
+            <input type="text" id="mClientName" class="form-control mb-2" placeholder="اسم العميل" required>
+            <input type="text" id="mClientPhone" class="form-control mb-2" placeholder="رقم الهاتف" required>
+            <input type="text" id="mDeviceModel" class="form-control mb-2" placeholder="نوع الجهاز (مثال: iPhone 13)" required>
+            <input type="text" id="mImei" class="form-control mb-2" placeholder="السرال / IMEI (اختياري)">
+            <textarea id="mProblem" class="form-control mb-2" placeholder="وصف العطل" required></textarea>
+            <input type="number" id="mPrice" class="form-control mb-2" placeholder="التكلفة التقديرية" required>
+            <button type="submit" class="btn btn-warning w-100">إنشاء التذكرة</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function loadProducts() {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        const tbody = document.getElementById('productsList');
+        tbody.innerHTML = data.map(p => `
+            <tr>
+                <td>${p.name}</td>
+                <td>${p.barcode || '-'}</td>
+                <td>${p.buy_price} ج.م</td>
+                <td>${p.sell_price} ج.م</td>
+                <td><span class="badge bg-info">${p.stock_quantity}</span></td>
+            </tr>
+        `).join('') || '<tr><td colspan="5" class="text-center">لا توجد منتجات</td></tr>';
+    }
+
+    async function loadMaintenance() {
+        const res = await fetch('/api/maintenance');
+        const data = await res.json();
+        const tbody = document.getElementById('maintenanceList');
+        tbody.innerHTML = data.map(m => `
+            <tr>
+                <td><strong>${m.ticket_number}</strong></td>
+                <td>${m.client_name}</td>
+                <td>${m.client_phone}</td>
+                <td>${m.device_model}</td>
+                <td>${m.problem_description}</td>
+                <td>${m.total_price} ج.م</td>
+            </tr>
+        `).join('') || '<tr><td colspan="6" class="text-center">لا توجد تذاكر صيانة</td></tr>';
+    }
+
+    document.getElementById('productForm').onsubmit = async (e) => {
+        e.preventDefault();
+        await fetch('/api/products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: document.getElementById('pName').value,
+                barcode: document.getElementById('pBarcode').value,
+                buy_price: document.getElementById('pBuyPrice').value,
+                sell_price: document.getElementById('pSellPrice').value,
+                stock_quantity: document.getElementById('pStock').value
+            })
+        });
+        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+        loadProducts();
+    };
+
+    document.getElementById('maintenanceForm').onsubmit = async (e) => {
+        e.preventDefault();
+        await fetch('/api/maintenance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                client_name: document.getElementById('mClientName').value,
+                client_phone: document.getElementById('mClientPhone').value,
+                device_model: document.getElementById('mDeviceModel').value,
+                imei_or_serial: document.getElementById('mImei').value,
+                problem_description: document.getElementById('mProblem').value,
+                total_price: document.getElementById('mPrice').value
+            })
+        });
+        bootstrap.Modal.getInstance(document.getElementById('addMaintenanceModal')).hide();
+        loadMaintenance();
+    };
+</script>
 </body>
 </html>
