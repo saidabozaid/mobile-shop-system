@@ -22,7 +22,7 @@ db.connect((err) => {
     }
 });
 
-// --- API المنتجات والمخزون ---
+// --- 1. API المنتجات والمخزون ---
 app.get('/api/products', (req, res) => {
     db.query('SELECT * FROM products ORDER BY id DESC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -39,7 +39,7 @@ app.post('/api/products', (req, res) => {
     });
 });
 
-// --- API تذاكر الصيانة ---
+// --- 2. API تذاكر الصيانة ---
 app.get('/api/maintenance', (req, res) => {
     db.query('SELECT * FROM maintenance_orders ORDER BY id DESC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -55,6 +55,32 @@ app.post('/api/maintenance', (req, res) => {
     db.query(sql, [ticket_number, client_name, client_phone, device_model, imei_or_serial, problem_description, total_price], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'تم إنشاء كارت الصيانة بنجاح', ticket_number });
+    });
+});
+
+// --- 3. API نقطة البيع (POS) والبحث وخصم المخزون ---
+app.get('/api/products/search/:query', (req, res) => {
+    const query = req.params.query;
+    const sql = 'SELECT * FROM products WHERE barcode = ? OR name LIKE ?';
+    db.query(sql, [query, `%${query}%`], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results);
+    });
+});
+
+app.post('/api/checkout', (req, res) => {
+    const { items } = req.body;
+    if (!items || items.length === 0) return res.status(400).json({ error: 'السلة فارغة' });
+
+    let completed = 0;
+    items.forEach(item => {
+        const sql = 'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?';
+        db.query(sql, [item.quantity, item.id, item.quantity], (err, result) => {
+            completed++;
+            if (completed === items.length) {
+                res.json({ message: 'تم إتمام عملية البيع وخصم الكميات من المخزون بنجاح!' });
+            }
+        });
     });
 });
 
