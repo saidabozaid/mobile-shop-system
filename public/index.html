@@ -8,6 +8,11 @@
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        @media print {
+            body * { visibility: hidden; }
+            #printableReceipt, #printableReceipt * { visibility: visible; }
+            #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -32,16 +37,44 @@
     </ul>
 
     <div class="tab-content" id="mainTabContent">
-        <!-- قسم نقطة البيع -->
+        <!-- قسم نقطة البيع POS -->
         <div class="tab-pane fade show active" id="pos">
-            <div class="card p-4">
-                <h4>نقطة البيع الفورية</h4>
-                <div class="row g-3 my-2">
-                    <div class="col-md-8">
-                        <input type="text" class="form-control form-control-lg" placeholder="امسح الباركود أو أدخل الـ IMEI هنا...">
+            <div class="row">
+                <div class="col-md-7">
+                    <div class="card p-3 mb-3">
+                        <h5>🔍 البحث عن منتج</h5>
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="ادخل الباركود أو اسم المنتج واضغط Enter..." onkeypress="if(event.key==='Enter') searchAndAdd()">
+                            <button class="btn btn-primary" onclick="searchAndAdd()">بحث وإضافة</button>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-primary btn-lg w-100">إضافة للفاتورة</button>
+                    <div class="card p-3">
+                        <h5>🛒 قائمة الفاتورة الحالية</h5>
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>المنتج</th>
+                                    <th>السعر</th>
+                                    <th>الكمية</th>
+                                    <th>الإجمالي</th>
+                                    <th>حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartTable">
+                                <tr><td colspan="5" class="text-center text-muted">السلة فارغة</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card p-4 bg-white border-primary">
+                        <h4>ملخص الفاتورة</h4>
+                        <hr>
+                        <div class="d-flex justify-content-between h4">
+                            <span>الإجمالي الكلي:</span>
+                            <span id="grandTotal" class="text-success font-weight-bold">0.00 ج.م</span>
+                        </div>
+                        <button class="btn btn-success btn-lg w-100 mt-4" onclick="checkout()">💳 إتمام البيع وطباعة الفاتورة</button>
                     </div>
                 </div>
             </div>
@@ -51,7 +84,7 @@
         <div class="tab-pane fade" id="inventory">
             <div class="card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>إدارة المنتجات الأجهزة</h4>
+                    <h4>إدارة المنتجات والأجهزة</h4>
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">+ إضافة منتج جديد</button>
                 </div>
                 <table class="table table-hover">
@@ -127,7 +160,7 @@
             <input type="text" id="mClientName" class="form-control mb-2" placeholder="اسم العميل" required>
             <input type="text" id="mClientPhone" class="form-control mb-2" placeholder="رقم الهاتف" required>
             <input type="text" id="mDeviceModel" class="form-control mb-2" placeholder="نوع الجهاز (مثال: iPhone 13)" required>
-            <input type="text" id="mImei" class="form-control mb-2" placeholder="السرال / IMEI (اختياري)">
+            <input type="text" id="mImei" class="form-control mb-2" placeholder="الرقم التسلسلي / IMEI (اختياري)">
             <textarea id="mProblem" class="form-control mb-2" placeholder="وصف العطل" required></textarea>
             <input type="number" id="mPrice" class="form-control mb-2" placeholder="التكلفة التقديرية" required>
             <button type="submit" class="btn btn-warning w-100">إنشاء التذكرة</button>
@@ -139,6 +172,66 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    let cart = [];
+
+    async function searchAndAdd() {
+        const q = document.getElementById('searchInput').value.trim();
+        if (!q) return;
+        const res = await fetch(`/api/products/search/${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+            const prod = data[0];
+            const existing = cart.find(item => item.id === prod.id);
+            if (existing) {
+                existing.quantity++;
+            } else {
+                cart.push({ id: prod.id, name: prod.name, price: Number(prod.sell_price), quantity: 1 });
+            }
+            document.getElementById('searchInput').value = '';
+            renderCart();
+        } else {
+            alert('المنتج غير موجود!');
+        }
+    }
+
+    function renderCart() {
+        const tbody = document.getElementById('cartTable');
+        let total = 0;
+        tbody.innerHTML = cart.map((item, index) => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+            return `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.price} ج.م</td>
+                    <td>${item.quantity}</td>
+                    <td>${itemTotal} ج.م</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})">✕</button></td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="5" class="text-center text-muted">السلة فارغة</td></tr>';
+        document.getElementById('grandTotal').innerText = `${total.toFixed(2)} ج.م`;
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    async function checkout() {
+        if (cart.length === 0) return alert('السلة فارغة!');
+        const res = await fetch('/api/checkout', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ items: cart })
+        });
+        const result = await res.json();
+        alert(result.message);
+        window.print();
+        cart = [];
+        renderCart();
+    }
+
     async function loadProducts() {
         const res = await fetch('/api/products');
         const data = await res.json();
