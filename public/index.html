@@ -8,126 +8,171 @@
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        /* تنسيق الفاتورة المخصصة للطباعة */
+        #receiptPrintArea { display: none; }
+
         @media print {
             body * { visibility: hidden; }
-            #printableReceipt, #printableReceipt * { visibility: visible; }
-            #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; }
+            #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+            #receiptPrintArea {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm; /* عرض الفاتورة الحرارية Standard Receipt */
+                padding: 10px;
+                font-size: 12px;
+                color: #000;
+            }
+            #receiptPrintArea table { width: 100%; border-collapse: collapse; }
+            #receiptPrintArea th, #receiptPrintArea td { border-bottom: 1px dashed #000; padding: 4px 0; text-align: right; }
         }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1">📱 نظام إدارة محل الموبايلات والصيانة</span>
+<div id="mainUI">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">📱 نظام إدارة محل الموبايلات والصيانة</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <ul class="nav nav-pills nav-justified mb-4" id="mainTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="pos-tab" data-bs-toggle="tab" data-bs-target="#pos" type="button">🛒 نقطة البيع (POS)</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" onclick="loadProducts()" type="button">📦 المخزون والـ IMEI</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" onclick="loadMaintenance()" type="button">🛠️ مركز الصيانة</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+            <!-- قسم نقطة البيع POS -->
+            <div class="tab-pane fade show active" id="pos">
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="card p-3 mb-3">
+                            <h5>🔍 البحث عن منتج</h5>
+                            <div class="input-group">
+                                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="ادخل الباركود أو اسم المنتج واضغط Enter..." onkeypress="if(event.key==='Enter') searchAndAdd()">
+                                <button class="btn btn-primary" onclick="searchAndAdd()">بحث وإضافة</button>
+                            </div>
+                        </div>
+                        <div class="card p-3">
+                            <h5>🛒 قائمة الفاتورة الحالية</h5>
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>السعر</th>
+                                        <th>الكمية</th>
+                                        <th>الإجمالي</th>
+                                        <th>حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartTable">
+                                    <tr><td colspan="5" class="text-center text-muted">السلة فارغة</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="card p-4 bg-white border-primary">
+                            <h4>ملخص الفاتورة</h4>
+                            <hr>
+                            <div class="d-flex justify-content-between h4">
+                                <span>الإجمالي الكلي:</span>
+                                <span id="grandTotal" class="text-success font-weight-bold">0.00 ج.م</span>
+                            </div>
+                            <button class="btn btn-success btn-lg w-100 mt-4" onclick="checkout()">💳 إتمام البيع وطباعة الفاتورة</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم المخزون -->
+            <div class="tab-pane fade" id="inventory">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>إدارة المنتجات والأجهزة</h4>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">+ إضافة منتج جديد</button>
+                    </div>
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>الباركود / IMEI</th>
+                                <th>سعر الشراء</th>
+                                <th>سعر البيع</th>
+                                <th>الكمية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsList">
+                            <tr><td colspan="5" class="text-center text-muted">جاري التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- قسم الصيانة -->
+            <div class="tab-pane fade" id="maintenance">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>تذاكر الصيانة والعمليات</h4>
+                        <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">+ كارت صيانة جديد</button>
+                    </div>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>رقم التذكرة</th>
+                                <th>اسم العميل</th>
+                                <th>الهاتف</th>
+                                <th>نوع الجهاز</th>
+                                <th>العطل</th>
+                                <th>التكلفة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenanceList">
+                            <tr><td colspan="6" class="text-center text-muted">جاري التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-</nav>
+</div>
 
-<div class="container">
-    <ul class="nav nav-pills nav-justified mb-4" id="mainTab" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="pos-tab" data-bs-toggle="tab" data-bs-target="#pos" type="button">🛒 نقطة البيع (POS)</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" onclick="loadProducts()" type="button">📦 المخزون والـ IMEI</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" onclick="loadMaintenance()" type="button">🛠️ مركز الصيانة</button>
-        </li>
-    </ul>
-
-    <div class="tab-content" id="mainTabContent">
-        <!-- قسم نقطة البيع POS -->
-        <div class="tab-pane fade show active" id="pos">
-            <div class="row">
-                <div class="col-md-7">
-                    <div class="card p-3 mb-3">
-                        <h5>🔍 البحث عن منتج</h5>
-                        <div class="input-group">
-                            <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="ادخل الباركود أو اسم المنتج واضغط Enter..." onkeypress="if(event.key==='Enter') searchAndAdd()">
-                            <button class="btn btn-primary" onclick="searchAndAdd()">بحث وإضافة</button>
-                        </div>
-                    </div>
-                    <div class="card p-3">
-                        <h5>🛒 قائمة الفاتورة الحالية</h5>
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>المنتج</th>
-                                    <th>السعر</th>
-                                    <th>الكمية</th>
-                                    <th>الإجمالي</th>
-                                    <th>حذف</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cartTable">
-                                <tr><td colspan="5" class="text-center text-muted">السلة فارغة</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="col-md-5">
-                    <div class="card p-4 bg-white border-primary">
-                        <h4>ملخص الفاتورة</h4>
-                        <hr>
-                        <div class="d-flex justify-content-between h4">
-                            <span>الإجمالي الكلي:</span>
-                            <span id="grandTotal" class="text-success font-weight-bold">0.00 ج.م</span>
-                        </div>
-                        <button class="btn btn-success btn-lg w-100 mt-4" onclick="checkout()">💳 إتمام البيع وطباعة الفاتورة</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- قسم المخزون -->
-        <div class="tab-pane fade" id="inventory">
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>إدارة المنتجات والأجهزة</h4>
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">+ إضافة منتج جديد</button>
-                </div>
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>الاسم</th>
-                            <th>الباركود / IMEI</th>
-                            <th>سعر الشراء</th>
-                            <th>سعر البيع</th>
-                            <th>الكمية</th>
-                        </tr>
-                    </thead>
-                    <tbody id="productsList">
-                        <tr><td colspan="5" class="text-center text-muted">جاري التحميل...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- قسم الصيانة -->
-        <div class="tab-pane fade" id="maintenance">
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>تذاكر الصيانة والعمليات</h4>
-                    <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">+ كارت صيانة جديد</button>
-                </div>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>رقم التذكرة</th>
-                            <th>اسم العميل</th>
-                            <th>الهاتف</th>
-                            <th>نوع الجهاز</th>
-                            <th>العطل</th>
-                            <th>التكلفة</th>
-                        </tr>
-                    </thead>
-                    <tbody id="maintenanceList">
-                        <tr><td colspan="6" class="text-center text-muted">جاري التحميل...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<!-- تصميم الفاتورة الخاصة بالطباعة فقط -->
+<div id="receiptPrintArea">
+    <div style="text-align: center; margin-bottom: 10px;">
+        <h3 style="margin: 0;">📱 محل الموبايلات</h3>
+        <p style="margin: 2px 0;">فاتورة مبيعات</p>
+        <p id="receiptDate" style="margin: 2px 0; font-size: 10px;"></p>
+    </div>
+    <hr style="border-top: 1px dashed #000;">
+    <table>
+        <thead>
+            <tr>
+                <th>المنتج</th>
+                <th>العدد</th>
+                <th>السعر</th>
+            </tr>
+        </thead>
+        <tbody id="receiptItems"></tbody>
+    </table>
+    <hr style="border-top: 1px dashed #000;">
+    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px;">
+        <span>الإجمالي:</span>
+        <span id="receiptTotal">0.00 ج.م</span>
+    </div>
+    <div style="text-align: center; margin-top: 15px; font-size: 10px;">
+        شكراً لزيارتكم!
     </div>
 </div>
 
@@ -159,7 +204,7 @@
         <form id="maintenanceForm">
             <input type="text" id="mClientName" class="form-control mb-2" placeholder="اسم العميل" required>
             <input type="text" id="mClientPhone" class="form-control mb-2" placeholder="رقم الهاتف" required>
-            <input type="text" id="mDeviceModel" class="form-control mb-2" placeholder="نوع الجهاز (مثال: iPhone 13)" required>
+            <input type="text" id="mDeviceModel" class="form-control mb-2" placeholder="نوع الجهاز" required>
             <input type="text" id="mImei" class="form-control mb-2" placeholder="الرقم التسلسلي / IMEI (اختياري)">
             <textarea id="mProblem" class="form-control mb-2" placeholder="وصف العطل" required></textarea>
             <input type="number" id="mPrice" class="form-control mb-2" placeholder="التكلفة التقديرية" required>
@@ -219,33 +264,37 @@
     }
 
     async function checkout() {
-    if (cart.length === 0) return alert('السلة فارغة!');
-    
-    try {
+        if (cart.length === 0) return alert('السلة فارغة!');
+        
+        // تجهيز الفاتورة للطباعة
+        const receiptItems = document.getElementById('receiptItems');
+        let total = 0;
+        receiptItems.innerHTML = cart.map(item => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+            return `<tr><td>${item.name}</td><td>${item.quantity}</td><td>${itemTotal}</td></tr>`;
+        }).join('');
+        
+        document.getElementById('receiptTotal').innerText = `${total.toFixed(2)} ج.م`;
+        document.getElementById('receiptDate').innerText = new Date().toLocaleString('ar-EG');
+
+        // إرسال البيعة للباك إند
         const res = await fetch('/api/checkout', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ items: cart })
         });
         
-        const result = await res.json();
-        
         if (res.ok) {
-            alert(result.message);
-            // تشغيل الطباعة المباشرة من المتصفح
             setTimeout(() => {
                 window.print();
-            }, 300);
-            
+            }, 200);
             cart = [];
             renderCart();
         } else {
-            alert('حدث خطأ أثناء إتمام البيع: ' + (result.error || 'غير معروف'));
+            alert('حدث خطأ أثناء حفظ البيعة');
         }
-    } catch (err) {
-        alert('تعذر الاتصال بالسيرفر!');
     }
-}
 
     async function loadProducts() {
         const res = await fetch('/api/products');
