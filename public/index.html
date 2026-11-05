@@ -219,18 +219,33 @@
     }
 
     async function checkout() {
-        if (cart.length === 0) return alert('السلة فارغة!');
+    if (cart.length === 0) return alert('السلة فارغة!');
+    
+    try {
         const res = await fetch('/api/checkout', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ items: cart })
         });
+        
         const result = await res.json();
-        alert(result.message);
-        window.print();
-        cart = [];
-        renderCart();
+        
+        if (res.ok) {
+            alert(result.message);
+            // تشغيل الطباعة المباشرة من المتصفح
+            setTimeout(() => {
+                window.print();
+            }, 300);
+            
+            cart = [];
+            renderCart();
+        } else {
+            alert('حدث خطأ أثناء إتمام البيع: ' + (result.error || 'غير معروف'));
+        }
+    } catch (err) {
+        alert('تعذر الاتصال بالسيرفر!');
     }
+}
 
     async function loadProducts() {
         const res = await fetch('/api/products');
