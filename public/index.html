@@ -118,7 +118,7 @@
  <nav class="navbar navbar-dark navbar-custom py-3 mb-4">
     <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
         <span class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-3">
-            <img src="logo.png" alt="Logo" style="height: 45px; border-radius: 8px; object-fit: contain;">
+            <img src="./logo.png" alt="Logo" style="height: 45px; width: auto; border-radius: 8px; object-fit: contain;" onerror="this.style.display='none'">
             <span>نظام المحل الذكي Pro</span>
         </span>
         <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="toggleTheme()">
@@ -289,8 +289,8 @@
 <!-- تصميم إيصال الطباعة الحراري -->
 <div id="receiptPrintArea">
     <div style="text-align: center; margin-bottom: 8px;">
-        <h4 style="margin: 0; font-weight: bold;">📱 فاتورة مبيعات</h4>
-        <p id="receiptDate" style="margin: 3px 0; font-size: 10px;"></p>
+        <img src="./logo.png" style="max-width: 60mm; max-height: 25mm; object-fit: contain; margin-bottom: 5px;" onerror="this.style.display='none'">
+        <h4 style="margin: 0; font-weight: bold;">فاتورة مبيعات</h4>        <p id="receiptDate" style="margin: 3px 0; font-size: 10px;"></p>
     </div>
     <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
     <table style="width: 100%; border-collapse: collapse;">
